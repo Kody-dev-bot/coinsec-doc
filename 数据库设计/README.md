@@ -214,4 +214,11 @@
    maxmemory-policy allkeys-lru
    ```
 
-这套设计可直接作为开发基础，后续可根据用户量增长优化分表策略（如按用户ID分表存储`account_record`）。
+[备份脚本](backup.sh)
+
+```bash
+# 添加到定时任务
+crontab -e
+# 加入以下行（每天凌晨2点执行）
+0 2 * * * /opt/accounting/backup.sh
+```

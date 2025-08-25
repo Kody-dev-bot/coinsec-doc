@@ -9,8 +9,10 @@ CREATE TABLE `account_record` (
   `original_text` varchar(500) NOT NULL COMMENT '用户原始输入',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted` tinyint NOT NULL DEFAULT 0 COMMENT '0=未删除,1=已删除',
+  `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`id`),
-  KEY `idx_user_date` (`user_id`, `record_date`) COMMENT '按用户+日期查询',
+  KEY `idx_user_deleted_date` (`user_id`, `deleted`, `record_date`) COMMENT '按用户+删除状态+日期查询',
   KEY `idx_account` (`account_id`) COMMENT '按账户查询',
   KEY `idx_category` (`category_id`) COMMENT '按类别查询'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='记账记录表';
