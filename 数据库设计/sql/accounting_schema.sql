@@ -45,7 +45,7 @@ CREATE TABLE `account` (
   KEY `idx_user` (`user_id`) COMMENT '按用户查询账户'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='账户表';
 
--- 4. 记账记录表（含逻辑删除）
+-- 4. 记账记录表（含逻辑删除+转账预留字段）
 CREATE TABLE `account_record` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL COMMENT '用户ID',
@@ -57,15 +57,18 @@ CREATE TABLE `account_record` (
   `original_text` varchar(500) NOT NULL COMMENT '用户原始输入',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted` tinyint NOT NULL DEFAULT 0 COMMENT '0=未删除,1=已删除',
+  `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '0=未删除,1=已删除',
   `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+  `transfer_id` bigint DEFAULT NULL COMMENT '关联转账ID（非转账记录为null）',
+  `transfer_role` tinyint DEFAULT NULL COMMENT '转账角色：1=转出方，2=转入方（非转账记录为null）',
   PRIMARY KEY (`id`),
-  KEY `idx_user_deleted_date` (`user_id`, `deleted`, `record_date`) COMMENT '按用户+删除状态+日期查询',
+  KEY `idx_user_deleted_date` (`user_id`, `is_deleted`, `record_date`) COMMENT '按用户+删除状态+日期查询',
   KEY `idx_account` (`account_id`) COMMENT '按账户查询',
-  KEY `idx_category` (`category_id`) COMMENT '按类别查询'
+  KEY `idx_category` (`category_id`) COMMENT '按类别查询',
+  KEY `idx_transfer` (`transfer_id`, `transfer_role`) COMMENT '按转账ID查询（预留）'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='记账记录表';
 
--- 5. 账户余额变动表（含逻辑删除）
+-- 5. 账户余额变动表（含逻辑删除+转账预留字段）
 CREATE TABLE `account_transaction` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` bigint NOT NULL COMMENT '用户ID',
@@ -75,11 +78,13 @@ CREATE TABLE `account_transaction` (
   `balance_before` decimal(12,2) NOT NULL COMMENT '变动前余额',
   `balance_after` decimal(12,2) NOT NULL COMMENT '变动后余额',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `deleted` tinyint NOT NULL DEFAULT 0 COMMENT '0=未删除,1=已删除',
+  `is_deleted` tinyint NOT NULL DEFAULT 0 COMMENT '0=未删除,1=已删除',
   `deleted_time` datetime DEFAULT NULL COMMENT '删除时间',
+  `transfer_id` bigint DEFAULT NULL COMMENT '关联转账ID（非转账记录为null）',
   PRIMARY KEY (`id`),
   KEY `idx_account` (`account_id`) COMMENT '按账户查询',
-  KEY `idx_record_deleted` (`record_id`, `deleted`) COMMENT '按记录ID+删除状态查询'
+  KEY `idx_record_deleted` (`record_id`, `is_deleted`) COMMENT '按记录ID+删除状态查询',
+  KEY `idx_transfer` (`transfer_id`) COMMENT '按转账ID查询（预留）'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='账户余额变动表';
 
 -- 6. 对话上下文表
@@ -145,6 +150,19 @@ CREATE TABLE `budget_execution` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_sub` (`sub_id`) COMMENT '一个子预算对应一条执行记录'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='预算执行表';
+
+-- 11. 转账主表（预留，当前不使用，后期扩展转账功能时启用）
+CREATE TABLE `account_transfer` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '转账ID',
+  `user_id` bigint NOT NULL COMMENT '用户ID',
+  `out_account_id` bigint NOT NULL COMMENT '转出账户ID',
+  `in_account_id` bigint NOT NULL COMMENT '转入账户ID',
+  `amount` decimal(12,2) NOT NULL COMMENT '转账金额',
+  `transfer_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '转账时间',
+  `remark` varchar(200) DEFAULT NULL COMMENT '备注（如“银行卡转微信”）',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_time` (`user_id`, `transfer_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='账户转账主表（预留）';
 
 -- 初始化系统默认类别
 INSERT INTO `category` (name, type, sort) VALUES 
